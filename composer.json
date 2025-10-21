@@ -1,0 +1,73 @@
+{
+    "name": "automata-kit/automata-kit",
+    "description": "Automata Kit - Laravel automation package for seamless integrations with n8n, Zapier, Make, Slack, Telegram, WhatsApp, and more",
+    "keywords": [
+        "laravel",
+        "automation",
+        "webhooks",
+        "n8n",
+        "zapier",
+        "make",
+        "slack",
+        "telegram",
+        "whatsapp",
+        "integration",
+        "workflow"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mohammed Mustafa",
+            "email": "eng.mmustafa@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^11.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "nesbot/carbon": "^3.0",
+        "illuminate/support": "^11.0",
+        "illuminate/http": "^11.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0",
+        "pestphp/pest": "^2.0",
+        "pestphp/pest-plugin-laravel": "^2.0",
+        "phpunit/phpunit": "^10.0",
+        "filament/filament": "^3.0"
+    },
+    "suggest": {
+        "filament/filament": "For the optional admin dashboard",
+        "laravel/nova": "Alternative admin dashboard support"
+    },
+    "autoload": {
+        "psr-4": {
+            "AutomataKit\\LaravelAutomationConnect\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "AutomataKit\\LaravelAutomationConnect\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AutomataKit\\LaravelAutomationConnect\\AutomationServiceProvider"
+            ],
+            "aliases": {
+                "Automation": "AutomataKit\\LaravelAutomationConnect\\Facades\\Automation"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
