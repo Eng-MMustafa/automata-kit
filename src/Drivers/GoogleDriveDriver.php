@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
 
-class GoogleDriveDriver extends BaseDriver
+final class GoogleDriveDriver extends BaseDriver
 {
     public function getName(): string
     {

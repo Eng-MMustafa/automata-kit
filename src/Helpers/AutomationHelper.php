@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Helpers;
 
-class AutomationHelper
+final class AutomationHelper
 {
     /**
      * Format message for different platforms.
@@ -75,38 +77,6 @@ class AutomationHelper
     }
 
     /**
-     * Recursively filter sensitive data from arrays.
-     */
-    private static function recursiveFilter(array $array, array $sensitiveKeys): array
-    {
-        foreach ($array as $key => $value) {
-            if (is_array($value)) {
-                $array[$key] = self::recursiveFilter($value, $sensitiveKeys);
-            } elseif (is_string($key) && self::containsSensitiveKey($key, $sensitiveKeys)) {
-                $array[$key] = '[REDACTED]';
-            }
-        }
-
-        return $array;
-    }
-
-    /**
-     * Check if key contains sensitive information.
-     */
-    private static function containsSensitiveKey(string $key, array $sensitiveKeys): bool
-    {
-        $key = strtolower($key);
-
-        foreach ($sensitiveKeys as $sensitive) {
-            if (str_contains($key, strtolower((string) $sensitive))) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Validate webhook signature.
      */
     public static function validateSignature(string $payload, string $signature, string $secret, string $algorithm = 'sha256'): bool
@@ -148,6 +118,54 @@ class AutomationHelper
     }
 
     /**
+     * Rate limiting check.
+     */
+    public static function checkRateLimit(string $driver, string $identifier): bool
+    {
+        if (! config('automation.rate_limiting.enabled', true)) {
+            return true;
+        }
+
+        $limit = config("automation.rate_limiting.driver_limits.{$driver}", config('automation.rate_limiting.default_limit', 60));
+
+        $key = "automation:rate_limit:{$driver}:{$identifier}";
+
+        return app(\Illuminate\Contracts\Cache\Factory::class)->throttle($key, $limit, now()->addMinute());
+    }
+
+    /**
+     * Recursively filter sensitive data from arrays.
+     */
+    private static function recursiveFilter(array $array, array $sensitiveKeys): array
+    {
+        foreach ($array as $key => $value) {
+            if (is_array($value)) {
+                $array[$key] = self::recursiveFilter($value, $sensitiveKeys);
+            } elseif (is_string($key) && self::containsSensitiveKey($key, $sensitiveKeys)) {
+                $array[$key] = '[REDACTED]';
+            }
+        }
+
+        return $array;
+    }
+
+    /**
+     * Check if key contains sensitive information.
+     */
+    private static function containsSensitiveKey(string $key, array $sensitiveKeys): bool
+    {
+        $key = mb_strtolower($key);
+
+        foreach ($sensitiveKeys as $sensitive) {
+            if (str_contains($key, mb_strtolower((string) $sensitive))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Transform data for HubSpot CRM format.
      */
     private static function transformToHubSpot(array $data): array
@@ -161,7 +179,7 @@ class AutomationHelper
                 'surname', 'last_name' => 'lastname',
                 'phone_number', 'mobile' => 'phone',
                 'company_name' => 'company',
-                default => strtolower((string) $key)
+                default => mb_strtolower((string) $key)
             };
 
             $hubspotData[$hubspotKey] = $value;
@@ -185,21 +203,5 @@ class AutomationHelper
     {
         // Convert to array of values for row insertion
         return array_values($data);
-    }
-
-    /**
-     * Rate limiting check.
-     */
-    public static function checkRateLimit(string $driver, string $identifier): bool
-    {
-        if (! config('automation.rate_limiting.enabled', true)) {
-            return true;
-        }
-
-        $limit = config("automation.rate_limiting.driver_limits.{$driver}", config('automation.rate_limiting.default_limit', 60));
-
-        $key = "automation:rate_limit:{$driver}:{$identifier}";
-
-        return app(\Illuminate\Contracts\Cache\Factory::class)->throttle($key, $limit, now()->addMinute());
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Http\Controllers;
 
 use AutomataKit\LaravelAutomationConnect\Events\WebhookReceived;
@@ -10,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class WebhookController
+final class WebhookController
 {
     public function __construct(
         protected AutomationManager $automationManager

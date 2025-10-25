@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class N8nDriver extends BaseDriver
+final class N8nDriver extends BaseDriver
 {
     /**
      * Get the driver name.
@@ -21,7 +24,7 @@ class N8nDriver extends BaseDriver
     {
         $webhookUrl = $this->getConfigValue('webhook_url') ?? $options['webhook_url'] ?? null;
 
-        throw_unless($webhookUrl, \InvalidArgumentException::class, 'webhook_url is required for n8n');
+        throw_unless($webhookUrl, InvalidArgumentException::class, 'webhook_url is required for n8n');
 
         $method = $options['method'] ?? 'POST';
         $headers = array_merge(
@@ -33,32 +36,6 @@ class N8nDriver extends BaseDriver
             'headers' => $headers,
             'json' => $data,
         ]);
-    }
-
-    /**
-     * Get default headers for n8n requests.
-     */
-    protected function getDefaultHeaders(): array
-    {
-        $headers = [
-            'Content-Type' => 'application/json',
-            'User-Agent' => 'Laravel-Automation-Connect/1.0',
-        ];
-
-        // Add authentication if configured
-        $apiKey = $this->getConfigValue('api_key');
-        if ($apiKey) {
-            $headers['X-N8N-API-KEY'] = $apiKey;
-        }
-
-        $basicAuth = $this->getConfigValue('basic_auth');
-        if ($basicAuth && isset($basicAuth['username']) && isset($basicAuth['password'])) {
-            $headers['Authorization'] = 'Basic '.base64_encode(
-                $basicAuth['username'].':'.$basicAuth['password']
-            );
-        }
-
-        return $headers;
     }
 
     /**
@@ -93,9 +70,9 @@ class N8nDriver extends BaseDriver
     {
         $baseUrl = $this->getConfigValue('base_url');
 
-        throw_unless($baseUrl, \InvalidArgumentException::class, 'base_url is required for workflow triggers');
+        throw_unless($baseUrl, InvalidArgumentException::class, 'base_url is required for workflow triggers');
 
-        $url = rtrim((string) $baseUrl, '/')."/webhook/{$workflowId}";
+        $url = mb_rtrim((string) $baseUrl, '/')."/webhook/{$workflowId}";
 
         return $this->send($data, array_merge($options, ['webhook_url' => $url]));
     }
@@ -108,9 +85,9 @@ class N8nDriver extends BaseDriver
         $baseUrl = $this->getConfigValue('base_url');
         $apiKey = $this->getConfigValue('api_key');
 
-        throw_if(! $baseUrl || ! $apiKey, \InvalidArgumentException::class, 'base_url and api_key are required for workflow execution');
+        throw_if(! $baseUrl || ! $apiKey, InvalidArgumentException::class, 'base_url and api_key are required for workflow execution');
 
-        $url = rtrim((string) $baseUrl, '/')."/api/v1/workflows/{$workflowId}/execute";
+        $url = mb_rtrim((string) $baseUrl, '/')."/api/v1/workflows/{$workflowId}/execute";
 
         return $this->makeRequest('POST', $url, [
             'headers' => [
@@ -131,9 +108,9 @@ class N8nDriver extends BaseDriver
         $baseUrl = $this->getConfigValue('base_url');
         $apiKey = $this->getConfigValue('api_key');
 
-        throw_if(! $baseUrl || ! $apiKey, \InvalidArgumentException::class, 'base_url and api_key are required');
+        throw_if(! $baseUrl || ! $apiKey, InvalidArgumentException::class, 'base_url and api_key are required');
 
-        $url = rtrim((string) $baseUrl, '/')."/api/v1/workflows/{$workflowId}";
+        $url = mb_rtrim((string) $baseUrl, '/')."/api/v1/workflows/{$workflowId}";
 
         return $this->makeRequest('GET', $url, [
             'headers' => [
@@ -150,9 +127,9 @@ class N8nDriver extends BaseDriver
         $baseUrl = $this->getConfigValue('base_url');
         $apiKey = $this->getConfigValue('api_key');
 
-        throw_if(! $baseUrl || ! $apiKey, \InvalidArgumentException::class, 'base_url and api_key are required');
+        throw_if(! $baseUrl || ! $apiKey, InvalidArgumentException::class, 'base_url and api_key are required');
 
-        $url = rtrim((string) $baseUrl, '/').'/api/v1/workflows';
+        $url = mb_rtrim((string) $baseUrl, '/').'/api/v1/workflows';
 
         return $this->makeRequest('GET', $url, [
             'headers' => [
@@ -203,5 +180,31 @@ class N8nDriver extends BaseDriver
     public function supportsOutgoingActions(): bool
     {
         return true;
+    }
+
+    /**
+     * Get default headers for n8n requests.
+     */
+    protected function getDefaultHeaders(): array
+    {
+        $headers = [
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Laravel-Automation-Connect/1.0',
+        ];
+
+        // Add authentication if configured
+        $apiKey = $this->getConfigValue('api_key');
+        if ($apiKey) {
+            $headers['X-N8N-API-KEY'] = $apiKey;
+        }
+
+        $basicAuth = $this->getConfigValue('basic_auth');
+        if ($basicAuth && isset($basicAuth['username']) && isset($basicAuth['password'])) {
+            $headers['Authorization'] = 'Basic '.base64_encode(
+                $basicAuth['username'].':'.$basicAuth['password']
+            );
+        }
+
+        return $headers;
     }
 }

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
 
-class GoogleSheetsDriver extends BaseDriver
+final class GoogleSheetsDriver extends BaseDriver
 {
     public function getName(): string
     {

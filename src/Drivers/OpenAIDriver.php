@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class OpenAIDriver extends BaseDriver
+final class OpenAIDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -15,7 +18,7 @@ class OpenAIDriver extends BaseDriver
     {
         $apiKey = $this->getConfigValue('api_key');
 
-        throw_unless($apiKey, \InvalidArgumentException::class, 'api_key is required for OpenAI',
+        throw_unless($apiKey, InvalidArgumentException::class, 'api_key is required for OpenAI',
         );
 
         $endpoint = $options['endpoint'] ?? 'chat/completions';

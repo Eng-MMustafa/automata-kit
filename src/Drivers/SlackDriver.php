@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class SlackDriver extends BaseDriver
+final class SlackDriver extends BaseDriver
 {
     /**
      * Get the driver name.
@@ -29,7 +32,104 @@ class SlackDriver extends BaseDriver
             return $this->sendViaApi($data, $token, $options);
         }
 
-        throw new \InvalidArgumentException('Either webhook_url or bot_token must be configured for Slack');
+        throw new InvalidArgumentException('Either webhook_url or bot_token must be configured for Slack');
+    }
+
+    /**
+     * Handle incoming Slack webhook.
+     */
+    public function handleWebhook(Request $request): mixed
+    {
+        $payload = $request->all();
+
+        // Handle URL verification challenge
+        if (isset($payload['challenge'])) {
+            return ['challenge' => $payload['challenge']];
+        }
+
+        // Handle different event types
+        if (isset($payload['event'])) {
+            return $this->handleEvent($payload['event'], $payload);
+        }
+
+        // Handle slash commands
+        if (isset($payload['command'])) {
+            return $this->handleSlashCommand($payload);
+        }
+
+        // Handle interactive components
+        if (isset($payload['payload'])) {
+            $interactivePayload = json_decode($payload['payload'], true);
+
+            return $this->handleInteractiveComponent($interactivePayload);
+        }
+
+        $this->log('info', 'Slack webhook received', ['payload' => $payload]);
+
+        return ['status' => 'received'];
+    }
+
+    /**
+     * Verify Slack webhook signature.
+     */
+    public function verifyWebhook(Request $request): bool
+    {
+        $signingSecret = $this->getConfigValue('signing_secret');
+
+        if (! $signingSecret) {
+            return true;
+        }
+
+        $signature = $request->header('X-Slack-Signature');
+        $timestamp = $request->header('X-Slack-Request-Timestamp');
+
+        if (! $signature || ! $timestamp) {
+            return false;
+        }
+
+        // Prevent replay attacks
+        if (abs(time() - $timestamp) > 60 * 5) {
+            return false;
+        }
+
+        $baseString = 'v0:'.$timestamp.':'.$request->getContent();
+        $expectedSignature = 'v0='.hash_hmac('sha256', $baseString, (string) $signingSecret);
+
+        return hash_equals($signature, $expectedSignature);
+    }
+
+    /**
+     * Get available actions for Slack.
+     */
+    public function getAvailableActions(): array
+    {
+        return [
+            'send' => 'Send message to Slack',
+            'post_message' => 'Post message to channel',
+            'upload_file' => 'Upload file to channel',
+            'create_channel' => 'Create new channel',
+            'invite_user' => 'Invite user to channel',
+        ];
+    }
+
+    /**
+     * Get supported webhook events for Slack.
+     */
+    public function getSupportedEvents(): array
+    {
+        return [
+            'message',
+            'app_mention',
+            'channel_created',
+            'channel_deleted',
+            'member_joined_channel',
+            'member_left_channel',
+            'reaction_added',
+            'reaction_removed',
+            'file_shared',
+            'slash_command',
+            'interactive_component',
+        ];
     }
 
     /**
@@ -97,40 +197,6 @@ class SlackDriver extends BaseDriver
     }
 
     /**
-     * Handle incoming Slack webhook.
-     */
-    public function handleWebhook(Request $request): mixed
-    {
-        $payload = $request->all();
-
-        // Handle URL verification challenge
-        if (isset($payload['challenge'])) {
-            return ['challenge' => $payload['challenge']];
-        }
-
-        // Handle different event types
-        if (isset($payload['event'])) {
-            return $this->handleEvent($payload['event'], $payload);
-        }
-
-        // Handle slash commands
-        if (isset($payload['command'])) {
-            return $this->handleSlashCommand($payload);
-        }
-
-        // Handle interactive components
-        if (isset($payload['payload'])) {
-            $interactivePayload = json_decode($payload['payload'], true);
-
-            return $this->handleInteractiveComponent($interactivePayload);
-        }
-
-        $this->log('info', 'Slack webhook received', ['payload' => $payload]);
-
-        return ['status' => 'received'];
-    }
-
-    /**
      * Handle Slack events.
      */
     protected function handleEvent(array $event, array $fullPayload): array
@@ -171,68 +237,5 @@ class SlackDriver extends BaseDriver
         ]);
 
         return ['status' => 'interaction_processed'];
-    }
-
-    /**
-     * Verify Slack webhook signature.
-     */
-    public function verifyWebhook(Request $request): bool
-    {
-        $signingSecret = $this->getConfigValue('signing_secret');
-
-        if (! $signingSecret) {
-            return true;
-        }
-
-        $signature = $request->header('X-Slack-Signature');
-        $timestamp = $request->header('X-Slack-Request-Timestamp');
-
-        if (! $signature || ! $timestamp) {
-            return false;
-        }
-
-        // Prevent replay attacks
-        if (abs(time() - $timestamp) > 60 * 5) {
-            return false;
-        }
-
-        $baseString = 'v0:'.$timestamp.':'.$request->getContent();
-        $expectedSignature = 'v0='.hash_hmac('sha256', $baseString, (string) $signingSecret);
-
-        return hash_equals($signature, $expectedSignature);
-    }
-
-    /**
-     * Get available actions for Slack.
-     */
-    public function getAvailableActions(): array
-    {
-        return [
-            'send' => 'Send message to Slack',
-            'post_message' => 'Post message to channel',
-            'upload_file' => 'Upload file to channel',
-            'create_channel' => 'Create new channel',
-            'invite_user' => 'Invite user to channel',
-        ];
-    }
-
-    /**
-     * Get supported webhook events for Slack.
-     */
-    public function getSupportedEvents(): array
-    {
-        return [
-            'message',
-            'app_mention',
-            'channel_created',
-            'channel_deleted',
-            'member_joined_channel',
-            'member_left_channel',
-            'reaction_added',
-            'reaction_removed',
-            'file_shared',
-            'slash_command',
-            'interactive_component',
-        ];
     }
 }

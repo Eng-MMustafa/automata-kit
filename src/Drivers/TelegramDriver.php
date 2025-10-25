@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class TelegramDriver extends BaseDriver
+final class TelegramDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -17,7 +20,7 @@ class TelegramDriver extends BaseDriver
 
         throw_unless(
             $botToken,
-            \InvalidArgumentException::class,
+            InvalidArgumentException::class,
             'bot_token is required for Telegram',
         );
 
@@ -29,18 +32,6 @@ class TelegramDriver extends BaseDriver
             'headers' => ['Content-Type' => 'application/json'],
             'json' => $payload,
         ]);
-    }
-
-    protected function formatPayload(array $data, string $method): array
-    {
-        return match ($method) {
-            'sendMessage' => [
-                'chat_id' => $data['chat_id'] ?? $this->getConfigValue('default_chat_id'),
-                'text' => $data['text'] ?? $data['message'] ?? 'Message from Laravel',
-                'parse_mode' => $data['parse_mode'] ?? 'HTML',
-            ],
-            default => $data,
-        };
     }
 
     public function handleWebhook(Request $request): mixed
@@ -56,27 +47,6 @@ class TelegramDriver extends BaseDriver
         }
 
         return ['status' => 'received'];
-    }
-
-    protected function handleMessage(array $message): array
-    {
-        $this->log('info', 'Telegram message received', [
-            'message_id' => $message['message_id'],
-            'from' => $message['from']['id'] ?? null,
-            'text' => $message['text'] ?? null,
-        ]);
-
-        return ['status' => 'message_processed'];
-    }
-
-    protected function handleCallbackQuery(array $callbackQuery): array
-    {
-        $this->log('info', 'Telegram callback query received', [
-            'id' => $callbackQuery['id'],
-            'data' => $callbackQuery['data'] ?? null,
-        ]);
-
-        return ['status' => 'callback_processed'];
     }
 
     public function verifyWebhook(Request $request): bool
@@ -108,5 +78,38 @@ class TelegramDriver extends BaseDriver
             'inline_query',
             'chosen_inline_result',
         ];
+    }
+
+    protected function formatPayload(array $data, string $method): array
+    {
+        return match ($method) {
+            'sendMessage' => [
+                'chat_id' => $data['chat_id'] ?? $this->getConfigValue('default_chat_id'),
+                'text' => $data['text'] ?? $data['message'] ?? 'Message from Laravel',
+                'parse_mode' => $data['parse_mode'] ?? 'HTML',
+            ],
+            default => $data,
+        };
+    }
+
+    protected function handleMessage(array $message): array
+    {
+        $this->log('info', 'Telegram message received', [
+            'message_id' => $message['message_id'],
+            'from' => $message['from']['id'] ?? null,
+            'text' => $message['text'] ?? null,
+        ]);
+
+        return ['status' => 'message_processed'];
+    }
+
+    protected function handleCallbackQuery(array $callbackQuery): array
+    {
+        $this->log('info', 'Telegram callback query received', [
+            'id' => $callbackQuery['id'],
+            'data' => $callbackQuery['data'] ?? null,
+        ]);
+
+        return ['status' => 'callback_processed'];
     }
 }

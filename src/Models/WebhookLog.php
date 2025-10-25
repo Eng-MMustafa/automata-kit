@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Models;
 
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +16,7 @@ use Illuminate\Support\Carbon;
  * @property float $processing_time_ms
  * @property Carbon $processed_at
  */
-class WebhookLog extends Model
+final class WebhookLog extends Model
 {
     use HasFactory;
 
@@ -43,6 +45,38 @@ class WebhookLog extends Model
         'processing_time_ms',
         'processed_at',
     ];
+
+    /**
+     * Get the webhook success rate for a service.
+     */
+    public static function getSuccessRate(?string $service = null): float
+    {
+        $query = self::query()
+            ->when($service, fn (Builder $builder, string $service): Builder => $builder->forService($service));
+
+        $total = $query->count();
+
+        if ($total === 0) {
+            return 0.0;
+        }
+
+        $successful = $query->successful()->count();
+
+        return round(($successful / $total) * 100, 2);
+    }
+
+    /**
+     * Get average processing time for a service.
+     */
+    public static function getAverageProcessingTime(?string $service = null): float
+    {
+        $processingTime = self::query()
+            ->whereNotNull('processing_time_ms')
+            ->when($service, fn (Builder $builder, string $service): Builder => $builder->forService($service))
+            ->avg('processing_time_ms');
+
+        return round($processingTime, 2);
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -106,37 +140,5 @@ class WebhookLog extends Model
     protected function failed(Builder $builder): Builder
     {
         return $builder->withStatus('failed');
-    }
-
-    /**
-     * Get the webhook success rate for a service.
-     */
-    public static function getSuccessRate(?string $service = null): float
-    {
-        $query = static::query()
-            ->when($service, fn (Builder $builder, string $service): Builder => $builder->forService($service));
-
-        $total = $query->count();
-
-        if ($total === 0) {
-            return 0.0;
-        }
-
-        $successful = $query->successful()->count();
-
-        return round(($successful / $total) * 100, 2);
-    }
-
-    /**
-     * Get average processing time for a service.
-     */
-    public static function getAverageProcessingTime(?string $service = null): float
-    {
-        $processingTime = static::query()
-            ->whereNotNull('processing_time_ms')
-            ->when($service, fn (Builder $builder, string $service): Builder => $builder->forService($service))
-            ->avg('processing_time_ms');
-
-        return round($processingTime, 2);
     }
 }

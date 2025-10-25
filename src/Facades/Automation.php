@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Facades;
 
 use AutomataKit\LaravelAutomationConnect\Services\AutomationManager;
@@ -11,9 +13,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static array getAvailableDrivers()
  * @method static bool hasDriver(string $driver)
  *
- * @see \AutomataKit\LaravelAutomationConnect\Services\AutomationManager
+ * @see AutomationManager
  */
-class Automation extends Facade
+final class Automation extends Facade
 {
     /**
      * Get the registered name of the component.

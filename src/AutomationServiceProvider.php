@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect;
 
 use AutomataKit\LaravelAutomationConnect\Drivers\AirtableDriver;
@@ -19,7 +21,7 @@ use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class AutomationServiceProvider extends PackageServiceProvider
+final class AutomationServiceProvider extends PackageServiceProvider
 {
     /**
      * Configuring the package.
@@ -29,7 +31,7 @@ class AutomationServiceProvider extends PackageServiceProvider
         $package
             ->name('automation')
             ->hasInstallCommand(
-                fn (InstallCommand $command): \Spatie\LaravelPackageTools\Commands\InstallCommand => $command
+                fn (InstallCommand $command): InstallCommand => $command
                     ->publishMigrations()
                     ->publishConfigFile()
                     ->askToStarRepoOnGitHub('Eng-MMustafa/automata-kit'),
@@ -46,12 +48,23 @@ class AutomationServiceProvider extends PackageServiceProvider
     {
         $this->app->singleton(
             AutomationManager::class,
-            fn ($app): \AutomataKit\LaravelAutomationConnect\Services\AutomationManager => new AutomationManager($app),
+            fn ($app): AutomationManager => new AutomationManager($app),
         );
 
         $this->app->alias(AutomationManager::class, 'automation');
 
         $this->registerDefaultDrivers();
+    }
+
+    /**
+     * Get the services provided by the provider.
+     */
+    public function provides(): array
+    {
+        return [
+            AutomationManager::class,
+            'automation',
+        ];
     }
 
     /**
@@ -77,16 +90,5 @@ class AutomationServiceProvider extends PackageServiceProvider
         foreach ($drivers as $name => $driverClass) {
             $this->app->bind("automation.driver.{$name}", $driverClass);
         }
-    }
-
-    /**
-     * Get the services provided by the provider.
-     */
-    public function provides(): array
-    {
-        return [
-            AutomationManager::class,
-            'automation',
-        ];
     }
 }

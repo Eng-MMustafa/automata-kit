@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use AutomataKit\LaravelAutomationConnect\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 

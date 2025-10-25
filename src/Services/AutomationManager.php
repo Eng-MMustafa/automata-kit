@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Services;
 
 use AutomataKit\LaravelAutomationConnect\Contracts\AutomationConnectorContract;
 use Illuminate\Container\Container;
 use Illuminate\Support\Manager;
 
-class AutomationManager extends Manager
+final class AutomationManager extends Manager
 {
     /**
      * Create a new automation manager instance.

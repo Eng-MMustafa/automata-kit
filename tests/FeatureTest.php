@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 use AutomataKit\LaravelAutomationConnect\Facades\Automation;
 use AutomataKit\LaravelAutomationConnect\Tests\TestCase;
 
-class SlackDriverTest extends TestCase
+final class SlackDriverTest extends TestCase
 {
     /** @test */
     public function it_can_send_slack_messages(): void
@@ -39,7 +41,7 @@ class SlackDriverTest extends TestCase
     }
 }
 
-class AutomationManagerTest extends TestCase
+final class AutomationManagerTest extends TestCase
 {
     /** @test */
     public function it_can_get_available_drivers(): void
@@ -59,7 +61,7 @@ class AutomationManagerTest extends TestCase
     }
 }
 
-class WebhookLogTest extends TestCase
+final class WebhookLogTest extends TestCase
 {
     /** @test */
     public function it_logs_webhook_requests(): void
@@ -80,19 +82,19 @@ class WebhookLogTest extends TestCase
     public function it_calculates_success_rate(): void
     {
         // Create test data
-        \AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
+        AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
             'service' => 'slack',
             'status' => 'success',
             'payload' => [],
         ]);
 
-        \AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
+        AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
             'service' => 'slack',
             'status' => 'failed',
             'payload' => [],
         ]);
 
-        $rate = \AutomataKit\LaravelAutomationConnect\Models\WebhookLog::getSuccessRate('slack');
+        $rate = AutomataKit\LaravelAutomationConnect\Models\WebhookLog::getSuccessRate('slack');
 
         $this->assertEquals(50.0, $rate);
     }

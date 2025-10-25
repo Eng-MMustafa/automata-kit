@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Tests;
 
 use AutomataKit\LaravelAutomationConnect\AutomationServiceProvider;

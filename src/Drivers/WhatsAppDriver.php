@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class WhatsAppDriver extends BaseDriver
+final class WhatsAppDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -16,7 +19,7 @@ class WhatsAppDriver extends BaseDriver
         $accessToken = $this->getConfigValue('access_token');
         $phoneNumberId = $this->getConfigValue('phone_number_id');
 
-        throw_if(! $accessToken || ! $phoneNumberId, \InvalidArgumentException::class, 'access_token and phone_number_id are required');
+        throw_if(! $accessToken || ! $phoneNumberId, InvalidArgumentException::class, 'access_token and phone_number_id are required');
 
         return $this->makeRequest('POST', "https://graph.facebook.com/v18.0/{$phoneNumberId}/messages", [
             'headers' => [

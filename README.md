@@ -208,7 +208,7 @@ class CustomServiceDriver extends BaseDriver
         ]);
     }
 
-    public function handleWebhook(Request $request): mixed
+    protected function handleWebhook(Request $request): array
     {
         return ['status' => 'received', 'data' => $request->all()];
     }

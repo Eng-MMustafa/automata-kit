@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use AutomataKit\LaravelAutomationConnect\Contracts\AutomationConnectorContract;
+use Exception;
 use Illuminate\Http\Client\Factory as HttpClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -33,80 +36,6 @@ abstract class BaseDriver implements AutomationConnectorContract
         $this->config = array_merge($this->config, $config);
 
         return $this;
-    }
-
-    /**
-     * Get configuration value with optional default.
-     */
-    protected function getConfigValue(string $key, mixed $default = null): mixed
-    {
-        return data_get($this->config, $key, $default);
-    }
-
-    /**
-     * Log driver activity.
-     */
-    protected function log(string $level, string $message, array $context = []): void
-    {
-        if (! config('automation.logging.enabled', true)) {
-            return;
-        }
-
-        $context = array_merge([
-            'driver' => $this->getName(),
-            'config' => \Illuminate\Support\Arr::except($this->config, ['api_key', 'token', 'secret', 'password']),
-        ], $context);
-
-        Log::log($level, "[Automation] {$message}", $context);
-    }
-
-    /**
-     * Make an HTTP request with error handling.
-     *
-     * @throws \Exception
-     */
-    protected function makeRequest(string $method, string $url, array $options = []): mixed
-    {
-        try {
-            $this->log('debug', "Making {$method} request", [
-                'url' => $url,
-                'options' => \Illuminate\Support\Arr::except($options, ['headers.Authorization', 'json.api_key']),
-            ]);
-
-            $response = $this->http->{strtolower($method)}($url, $options);
-
-            throw_unless($response->successful(), \Exception::class, "HTTP request failed with status {$response->status()}: {$response->body()}");
-
-            return $response->json() ?? $response->body();
-        } catch (\Exception $e) {
-            $this->log('error', 'HTTP request failed', [
-                'url' => $url,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw $e;
-        }
-    }
-
-    /**
-     * Verify webhook signature using HMAC.
-     */
-    protected function verifyHmacSignature(
-        Request $request,
-        string $secret,
-        string $headerName = 'X-Signature',
-        string $algorithm = 'sha256'
-    ): bool {
-        $signature = $request->header($headerName);
-
-        if (! $signature) {
-            return false;
-        }
-
-        $expectedSignature = hash_hmac($algorithm, $request->getContent(), $secret);
-
-        return hash_equals($signature, $expectedSignature) ||
-               hash_equals($signature, $algorithm.'='.$expectedSignature);
     }
 
     /**
@@ -165,5 +94,79 @@ abstract class BaseDriver implements AutomationConnectorContract
     public function getSupportedEvents(): array
     {
         return ['*'];
+    }
+
+    /**
+     * Get configuration value with optional default.
+     */
+    protected function getConfigValue(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->config, $key, $default);
+    }
+
+    /**
+     * Log driver activity.
+     */
+    protected function log(string $level, string $message, array $context = []): void
+    {
+        if (! config('automation.logging.enabled', true)) {
+            return;
+        }
+
+        $context = array_merge([
+            'driver' => $this->getName(),
+            'config' => \Illuminate\Support\Arr::except($this->config, ['api_key', 'token', 'secret', 'password']),
+        ], $context);
+
+        Log::log($level, "[Automation] {$message}", $context);
+    }
+
+    /**
+     * Make an HTTP request with error handling.
+     *
+     * @throws Exception
+     */
+    protected function makeRequest(string $method, string $url, array $options = []): mixed
+    {
+        try {
+            $this->log('debug', "Making {$method} request", [
+                'url' => $url,
+                'options' => \Illuminate\Support\Arr::except($options, ['headers.Authorization', 'json.api_key']),
+            ]);
+
+            $response = $this->http->{mb_strtolower($method)}($url, $options);
+
+            throw_unless($response->successful(), Exception::class, "HTTP request failed with status {$response->status()}: {$response->body()}");
+
+            return $response->json() ?? $response->body();
+        } catch (Exception $e) {
+            $this->log('error', 'HTTP request failed', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Verify webhook signature using HMAC.
+     */
+    protected function verifyHmacSignature(
+        Request $request,
+        string $secret,
+        string $headerName = 'X-Signature',
+        string $algorithm = 'sha256'
+    ): bool {
+        $signature = $request->header($headerName);
+
+        if (! $signature) {
+            return false;
+        }
+
+        $expectedSignature = hash_hmac($algorithm, $request->getContent(), $secret);
+
+        return hash_equals($signature, $expectedSignature) ||
+               hash_equals($signature, $algorithm.'='.$expectedSignature);
     }
 }

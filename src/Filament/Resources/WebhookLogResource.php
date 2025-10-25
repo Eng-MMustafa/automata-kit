@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Filament\Resources;
 
 use AutomataKit\LaravelAutomationConnect\Models\WebhookLog;
@@ -9,7 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class WebhookLogResource extends Resource
+final class WebhookLogResource extends Resource
 {
     protected static ?string $model = WebhookLog::class;
 

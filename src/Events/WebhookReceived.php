@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class WebhookReceived
+final class WebhookReceived
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
