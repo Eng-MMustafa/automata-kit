@@ -15,14 +15,10 @@ class WhatsAppDriver extends BaseDriver
     {
         $accessToken = $this->getConfigValue('access_token');
         $phoneNumberId = $this->getConfigValue('phone_number_id');
-        
-        if (!$accessToken || !$phoneNumberId) {
-            throw new \InvalidArgumentException('access_token and phone_number_id are required');
-        }
 
-        $url = "https://graph.facebook.com/v18.0/{$phoneNumberId}/messages";
+        throw_if(! $accessToken || ! $phoneNumberId, \InvalidArgumentException::class, 'access_token and phone_number_id are required');
 
-        return $this->makeRequest('POST', $url, [
+        return $this->makeRequest('POST', "https://graph.facebook.com/v18.0/{$phoneNumberId}/messages", [
             'headers' => [
                 'Authorization' => "Bearer {$accessToken}",
                 'Content-Type' => 'application/json',
@@ -32,7 +28,7 @@ class WhatsAppDriver extends BaseDriver
                 'to' => $data['to'],
                 'type' => $data['type'] ?? 'text',
                 'text' => [
-                    'body' => $data['message'] ?? $data['text'] ?? 'Message from Laravel'
+                    'body' => $data['message'] ?? $data['text'] ?? 'Message from Laravel',
                 ],
             ],
         ]);

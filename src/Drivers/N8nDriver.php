@@ -8,8 +8,6 @@ class N8nDriver extends BaseDriver
 {
     /**
      * Get the driver name.
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -18,18 +16,12 @@ class N8nDriver extends BaseDriver
 
     /**
      * Send data to n8n workflow.
-     *
-     * @param array $data
-     * @param array $options
-     * @return mixed
      */
     public function send(array $data, array $options = []): mixed
     {
         $webhookUrl = $this->getConfigValue('webhook_url') ?? $options['webhook_url'] ?? null;
-        
-        if (!$webhookUrl) {
-            throw new \InvalidArgumentException('webhook_url is required for n8n');
-        }
+
+        throw_unless($webhookUrl, \InvalidArgumentException::class, 'webhook_url is required for n8n');
 
         $method = $options['method'] ?? 'POST';
         $headers = array_merge(
@@ -45,8 +37,6 @@ class N8nDriver extends BaseDriver
 
     /**
      * Get default headers for n8n requests.
-     *
-     * @return array
      */
     protected function getDefaultHeaders(): array
     {
@@ -63,8 +53,8 @@ class N8nDriver extends BaseDriver
 
         $basicAuth = $this->getConfigValue('basic_auth');
         if ($basicAuth && isset($basicAuth['username']) && isset($basicAuth['password'])) {
-            $headers['Authorization'] = 'Basic ' . base64_encode(
-                $basicAuth['username'] . ':' . $basicAuth['password']
+            $headers['Authorization'] = 'Basic '.base64_encode(
+                $basicAuth['username'].':'.$basicAuth['password']
             );
         }
 
@@ -73,14 +63,11 @@ class N8nDriver extends BaseDriver
 
     /**
      * Handle incoming n8n webhook.
-     *
-     * @param Request $request
-     * @return mixed
      */
     public function handleWebhook(Request $request): mixed
     {
         $payload = $request->all();
-        
+
         $this->log('info', 'n8n webhook received', [
             'method' => $request->method(),
             'payload' => $payload,
@@ -101,42 +88,29 @@ class N8nDriver extends BaseDriver
 
     /**
      * Trigger a specific n8n workflow.
-     *
-     * @param string $workflowId
-     * @param array $data
-     * @param array $options
-     * @return mixed
      */
     public function triggerWorkflow(string $workflowId, array $data = [], array $options = []): mixed
     {
         $baseUrl = $this->getConfigValue('base_url');
-        
-        if (!$baseUrl) {
-            throw new \InvalidArgumentException('base_url is required for workflow triggers');
-        }
 
-        $url = rtrim($baseUrl, '/') . "/webhook/{$workflowId}";
-        
+        throw_unless($baseUrl, \InvalidArgumentException::class, 'base_url is required for workflow triggers');
+
+        $url = rtrim((string) $baseUrl, '/')."/webhook/{$workflowId}";
+
         return $this->send($data, array_merge($options, ['webhook_url' => $url]));
     }
 
     /**
      * Execute a workflow via n8n API.
-     *
-     * @param string $workflowId
-     * @param array $data
-     * @return mixed
      */
     public function executeWorkflow(string $workflowId, array $data = []): mixed
     {
         $baseUrl = $this->getConfigValue('base_url');
         $apiKey = $this->getConfigValue('api_key');
-        
-        if (!$baseUrl || !$apiKey) {
-            throw new \InvalidArgumentException('base_url and api_key are required for workflow execution');
-        }
 
-        $url = rtrim($baseUrl, '/') . "/api/v1/workflows/{$workflowId}/execute";
+        throw_if(! $baseUrl || ! $apiKey, \InvalidArgumentException::class, 'base_url and api_key are required for workflow execution');
+
+        $url = rtrim((string) $baseUrl, '/')."/api/v1/workflows/{$workflowId}/execute";
 
         return $this->makeRequest('POST', $url, [
             'headers' => [
@@ -151,20 +125,15 @@ class N8nDriver extends BaseDriver
 
     /**
      * Get workflow information from n8n.
-     *
-     * @param string $workflowId
-     * @return mixed
      */
     public function getWorkflow(string $workflowId): mixed
     {
         $baseUrl = $this->getConfigValue('base_url');
         $apiKey = $this->getConfigValue('api_key');
-        
-        if (!$baseUrl || !$apiKey) {
-            throw new \InvalidArgumentException('base_url and api_key are required');
-        }
 
-        $url = rtrim($baseUrl, '/') . "/api/v1/workflows/{$workflowId}";
+        throw_if(! $baseUrl || ! $apiKey, \InvalidArgumentException::class, 'base_url and api_key are required');
+
+        $url = rtrim((string) $baseUrl, '/')."/api/v1/workflows/{$workflowId}";
 
         return $this->makeRequest('GET', $url, [
             'headers' => [
@@ -175,19 +144,15 @@ class N8nDriver extends BaseDriver
 
     /**
      * List available workflows.
-     *
-     * @return mixed
      */
     public function listWorkflows(): mixed
     {
         $baseUrl = $this->getConfigValue('base_url');
         $apiKey = $this->getConfigValue('api_key');
-        
-        if (!$baseUrl || !$apiKey) {
-            throw new \InvalidArgumentException('base_url and api_key are required');
-        }
 
-        $url = rtrim($baseUrl, '/') . '/api/v1/workflows';
+        throw_if(! $baseUrl || ! $apiKey, \InvalidArgumentException::class, 'base_url and api_key are required');
+
+        $url = rtrim((string) $baseUrl, '/').'/api/v1/workflows';
 
         return $this->makeRequest('GET', $url, [
             'headers' => [
@@ -198,8 +163,6 @@ class N8nDriver extends BaseDriver
 
     /**
      * Get available actions for n8n.
-     *
-     * @return array
      */
     public function getAvailableActions(): array
     {
@@ -214,8 +177,6 @@ class N8nDriver extends BaseDriver
 
     /**
      * Get supported webhook events for n8n.
-     *
-     * @return array
      */
     public function getSupportedEvents(): array
     {
@@ -230,8 +191,6 @@ class N8nDriver extends BaseDriver
 
     /**
      * Check if the driver supports incoming webhooks.
-     *
-     * @return bool
      */
     public function supportsIncomingWebhooks(): bool
     {
@@ -240,8 +199,6 @@ class N8nDriver extends BaseDriver
 
     /**
      * Check if the driver supports outgoing actions.
-     *
-     * @return bool
      */
     public function supportsOutgoingActions(): bool
     {

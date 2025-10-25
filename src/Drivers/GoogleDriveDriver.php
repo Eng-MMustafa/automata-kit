@@ -14,7 +14,7 @@ class GoogleDriveDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $this->log('info', 'Google Drive action requested', ['data' => $data]);
-        
+
         return [
             'status' => 'simulated',
             'message' => 'Google Drive integration requires OAuth2 configuration',

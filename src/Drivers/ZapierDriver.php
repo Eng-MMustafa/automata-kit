@@ -20,10 +20,8 @@ class ZapierDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $webhookUrl = $this->getConfigValue('webhook_url') ?? $options['webhook_url'] ?? null;
-        
-        if (!$webhookUrl) {
-            throw new \InvalidArgumentException('webhook_url is required for Zapier');
-        }
+
+        throw_unless($webhookUrl, \InvalidArgumentException::class, 'webhook_url is required for Zapier');
 
         return $this->makeRequest('POST', $webhookUrl, [
             'headers' => [

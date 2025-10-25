@@ -17,8 +17,6 @@ abstract class BaseDriver implements AutomationConnectorContract
 
     /**
      * Get the driver configuration.
-     *
-     * @return array
      */
     public function getConfig(): array
     {
@@ -28,21 +26,17 @@ abstract class BaseDriver implements AutomationConnectorContract
     /**
      * Set the driver configuration.
      *
-     * @param array $config
      * @return $this
      */
     public function setConfig(array $config): static
     {
         $this->config = array_merge($this->config, $config);
+
         return $this;
     }
 
     /**
      * Get configuration value with optional default.
-     *
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
      */
     protected function getConfigValue(string $key, mixed $default = null): mixed
     {
@@ -51,20 +45,16 @@ abstract class BaseDriver implements AutomationConnectorContract
 
     /**
      * Log driver activity.
-     *
-     * @param string $level
-     * @param string $message
-     * @param array $context
      */
     protected function log(string $level, string $message, array $context = []): void
     {
-        if (!config('automation.logging.enabled', true)) {
+        if (! config('automation.logging.enabled', true)) {
             return;
         }
 
         $context = array_merge([
             'driver' => $this->getName(),
-            'config' => array_except($this->config, ['api_key', 'token', 'secret', 'password']),
+            'config' => \Illuminate\Support\Arr::except($this->config, ['api_key', 'token', 'secret', 'password']),
         ], $context);
 
         Log::log($level, "[Automation] {$message}", $context);
@@ -73,10 +63,6 @@ abstract class BaseDriver implements AutomationConnectorContract
     /**
      * Make an HTTP request with error handling.
      *
-     * @param string $method
-     * @param string $url
-     * @param array $options
-     * @return mixed
      * @throws \Exception
      */
     protected function makeRequest(string $method, string $url, array $options = []): mixed
@@ -84,16 +70,12 @@ abstract class BaseDriver implements AutomationConnectorContract
         try {
             $this->log('debug', "Making {$method} request", [
                 'url' => $url,
-                'options' => array_except($options, ['headers.Authorization', 'json.api_key']),
+                'options' => \Illuminate\Support\Arr::except($options, ['headers.Authorization', 'json.api_key']),
             ]);
 
             $response = $this->http->{strtolower($method)}($url, $options);
 
-            if (!$response->successful()) {
-                throw new \Exception(
-                    "HTTP request failed with status {$response->status()}: {$response->body()}"
-                );
-            }
+            throw_unless($response->successful(), \Exception::class, "HTTP request failed with status {$response->status()}: {$response->body()}");
 
             return $response->json() ?? $response->body();
         } catch (\Exception $e) {
@@ -101,19 +83,13 @@ abstract class BaseDriver implements AutomationConnectorContract
                 'url' => $url,
                 'error' => $e->getMessage(),
             ]);
-            
+
             throw $e;
         }
     }
 
     /**
      * Verify webhook signature using HMAC.
-     *
-     * @param Request $request
-     * @param string $secret
-     * @param string $headerName
-     * @param string $algorithm
-     * @return bool
      */
     protected function verifyHmacSignature(
         Request $request,
@@ -122,28 +98,25 @@ abstract class BaseDriver implements AutomationConnectorContract
         string $algorithm = 'sha256'
     ): bool {
         $signature = $request->header($headerName);
-        
-        if (!$signature) {
+
+        if (! $signature) {
             return false;
         }
 
         $expectedSignature = hash_hmac($algorithm, $request->getContent(), $secret);
-        
-        return hash_equals($signature, $expectedSignature) || 
-               hash_equals($signature, $algorithm . '=' . $expectedSignature);
+
+        return hash_equals($signature, $expectedSignature) ||
+               hash_equals($signature, $algorithm.'='.$expectedSignature);
     }
 
     /**
      * Default webhook verification (can be overridden).
-     *
-     * @param Request $request
-     * @return bool
      */
     public function verifyWebhook(Request $request): bool
     {
         $secret = $this->getConfigValue('webhook_secret');
-        
-        if (!$secret) {
+
+        if (! $secret) {
             return true; // No secret configured, skip verification
         }
 
@@ -152,9 +125,6 @@ abstract class BaseDriver implements AutomationConnectorContract
 
     /**
      * Default webhook handler (should be overridden).
-     *
-     * @param Request $request
-     * @return mixed
      */
     public function handleWebhook(Request $request): mixed
     {
@@ -167,8 +137,6 @@ abstract class BaseDriver implements AutomationConnectorContract
 
     /**
      * Check if the driver supports incoming webhooks.
-     *
-     * @return bool
      */
     public function supportsIncomingWebhooks(): bool
     {
@@ -177,8 +145,6 @@ abstract class BaseDriver implements AutomationConnectorContract
 
     /**
      * Check if the driver supports outgoing actions.
-     *
-     * @return bool
      */
     public function supportsOutgoingActions(): bool
     {
@@ -187,8 +153,6 @@ abstract class BaseDriver implements AutomationConnectorContract
 
     /**
      * Get available actions for this driver.
-     *
-     * @return array
      */
     public function getAvailableActions(): array
     {
@@ -197,8 +161,6 @@ abstract class BaseDriver implements AutomationConnectorContract
 
     /**
      * Get supported webhook events for this driver.
-     *
-     * @return array
      */
     public function getSupportedEvents(): array
     {

@@ -70,7 +70,7 @@ class AutomationHelper
     {
         // Remove sensitive data
         $sensitive = ['password', 'token', 'secret', 'key', 'auth'];
-        
+
         return self::recursiveFilter($payload, $sensitive);
     }
 
@@ -96,9 +96,9 @@ class AutomationHelper
     private static function containsSensitiveKey(string $key, array $sensitiveKeys): bool
     {
         $key = strtolower($key);
-        
+
         foreach ($sensitiveKeys as $sensitive) {
-            if (str_contains($key, strtolower($sensitive))) {
+            if (str_contains($key, strtolower((string) $sensitive))) {
                 return true;
             }
         }
@@ -112,7 +112,7 @@ class AutomationHelper
     public static function validateSignature(string $payload, string $signature, string $secret, string $algorithm = 'sha256'): bool
     {
         $expectedSignature = hash_hmac($algorithm, $payload, $secret);
-        
+
         return hash_equals($signature, $expectedSignature) ||
                hash_equals($signature, "{$algorithm}={$expectedSignature}");
     }
@@ -124,13 +124,13 @@ class AutomationHelper
     {
         $baseUrl = config('app.url');
         $prefix = config('automation.webhook_prefix', 'webhooks');
-        
+
         $url = "{$baseUrl}/{$prefix}/{$service}";
-        
+
         if ($event) {
             $url .= "/{$event}";
         }
-        
+
         return $url;
     }
 
@@ -153,7 +153,7 @@ class AutomationHelper
     private static function transformToHubSpot(array $data): array
     {
         $hubspotData = [];
-        
+
         foreach ($data as $key => $value) {
             // Convert common field names
             $hubspotKey = match ($key) {
@@ -161,12 +161,12 @@ class AutomationHelper
                 'surname', 'last_name' => 'lastname',
                 'phone_number', 'mobile' => 'phone',
                 'company_name' => 'company',
-                default => strtolower($key)
+                default => strtolower((string) $key)
             };
-            
+
             $hubspotData[$hubspotKey] = $value;
         }
-        
+
         return $hubspotData;
     }
 
@@ -175,10 +175,7 @@ class AutomationHelper
      */
     private static function transformToAirtable(array $data): array
     {
-        return array_map(function ($key, $value) {
-            // Airtable field names should be Title Case
-            return [ucwords(str_replace('_', ' ', $key)) => $value];
-        }, array_keys($data), $data);
+        return array_map(fn ($key, int|string $value): array => [ucwords(str_replace('_', ' ', $key)) => $value], array_keys($data), $data);
     }
 
     /**
@@ -195,15 +192,14 @@ class AutomationHelper
      */
     public static function checkRateLimit(string $driver, string $identifier): bool
     {
-        if (!config('automation.rate_limiting.enabled', true)) {
+        if (! config('automation.rate_limiting.enabled', true)) {
             return true;
         }
 
-        $limit = config("automation.rate_limiting.driver_limits.{$driver}") 
-               ?? config('automation.rate_limiting.default_limit', 60);
+        $limit = config("automation.rate_limiting.driver_limits.{$driver}", config('automation.rate_limiting.default_limit', 60));
 
         $key = "automation:rate_limit:{$driver}:{$identifier}";
-        
-        return app('cache')->throttle($key, $limit, now()->addMinute());
+
+        return app(\Illuminate\Contracts\Cache\Factory::class)->throttle($key, $limit, now()->addMinute());
     }
 }

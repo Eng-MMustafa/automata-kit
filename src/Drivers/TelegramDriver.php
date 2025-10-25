@@ -14,17 +14,18 @@ class TelegramDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $botToken = $this->getConfigValue('bot_token');
-        
-        if (!$botToken) {
-            throw new \InvalidArgumentException('bot_token is required for Telegram');
-        }
+
+        throw_unless(
+            $botToken,
+            \InvalidArgumentException::class,
+            'bot_token is required for Telegram',
+        );
 
         $method = $options['method'] ?? 'sendMessage';
-        $url = "https://api.telegram.org/bot{$botToken}/{$method}";
 
         $payload = $this->formatPayload($data, $method);
 
-        return $this->makeRequest('POST', $url, [
+        return $this->makeRequest('POST', "https://api.telegram.org/bot{$botToken}/{$method}", [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => $payload,
         ]);
@@ -32,22 +33,20 @@ class TelegramDriver extends BaseDriver
 
     protected function formatPayload(array $data, string $method): array
     {
-        switch ($method) {
-            case 'sendMessage':
-                return [
-                    'chat_id' => $data['chat_id'] ?? $this->getConfigValue('default_chat_id'),
-                    'text' => $data['text'] ?? $data['message'] ?? 'Message from Laravel',
-                    'parse_mode' => $data['parse_mode'] ?? 'HTML',
-                ];
-            default:
-                return $data;
-        }
+        return match ($method) {
+            'sendMessage' => [
+                'chat_id' => $data['chat_id'] ?? $this->getConfigValue('default_chat_id'),
+                'text' => $data['text'] ?? $data['message'] ?? 'Message from Laravel',
+                'parse_mode' => $data['parse_mode'] ?? 'HTML',
+            ],
+            default => $data,
+        };
     }
 
     public function handleWebhook(Request $request): mixed
     {
         $update = $request->all();
-        
+
         if (isset($update['message'])) {
             return $this->handleMessage($update['message']);
         }
@@ -83,14 +82,10 @@ class TelegramDriver extends BaseDriver
     public function verifyWebhook(Request $request): bool
     {
         $token = $this->getConfigValue('bot_token');
-        
-        if (!$token) {
-            return true;
-        }
 
         // Telegram doesn't use signature verification by default
         // But you can implement IP validation or secret token validation
-        return true;
+        return (bool) $token;
     }
 
     public function getAvailableActions(): array

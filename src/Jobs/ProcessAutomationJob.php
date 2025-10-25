@@ -24,7 +24,7 @@ class ProcessAutomationJob implements ShouldQueue
     {
         try {
             $result = $automation->to($this->driver)->send($this->data, $this->options);
-            
+
             Log::info('Automation job completed successfully', [
                 'driver' => $this->driver,
                 'data_keys' => array_keys($this->data),
@@ -36,7 +36,7 @@ class ProcessAutomationJob implements ShouldQueue
                 'error' => $e->getMessage(),
                 'data_keys' => array_keys($this->data),
             ]);
-            
+
             throw $e;
         }
     }

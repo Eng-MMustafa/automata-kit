@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('automation_webhook_logs', function (Blueprint $table) {
+        Schema::create('automation_webhook_logs', function (Blueprint $table): void {
             $table->id();
             $table->string('service')->index();
             $table->string('event')->nullable()->index();

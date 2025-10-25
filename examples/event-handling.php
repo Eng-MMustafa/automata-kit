@@ -1,12 +1,9 @@
 <?php
 
-// Example: Laravel Event Listeners for Webhook Events
-
-use AutomataKit\LaravelAutomationConnect\Events\WebhookReceived;
-use Illuminate\Events\Listener;
-use Illuminate\Support\Facades\Log;
-use App\Models\User;
 use App\Models\Order;
+use App\Models\User;
+use AutomataKit\LaravelAutomationConnect\Events\WebhookReceived;
+use Illuminate\Support\Facades\Log;
 
 // Create an event listener for Slack webhooks
 class SlackWebhookListener
@@ -41,7 +38,7 @@ class SlackWebhookListener
         // Send auto-response
         Automation::to('slack')->send([
             'channel' => $payload['event']['channel'],
-            'text' => "Hello! I received your message: {$text}"
+            'text' => "Hello! I received your message: {$text}",
         ]);
     }
 
@@ -63,7 +60,7 @@ class N8nWebhookListener
 
         // Handle different workflow events
         $workflowId = $event->payload['workflowId'] ?? null;
-        
+
         switch ($workflowId) {
             case 'new-order-workflow':
                 $this->handleNewOrder($event->payload);
@@ -77,7 +74,7 @@ class N8nWebhookListener
     private function handleNewOrder(array $data): void
     {
         $orderData = $data['order'] ?? [];
-        
+
         // Create order in database
         $order = Order::create([
             'customer_email' => $orderData['email'],
@@ -88,11 +85,11 @@ class N8nWebhookListener
 
         // Send confirmation notifications
         Automation::to('slack')->send([
-            'text' => "New order #{$order->id} created: ${$order->total}"
+            'text' => "New order #{$order->id} created: ${$order->total}",
         ]);
 
         Automation::to('telegram')->send([
-            'text' => "📦 Order #{$order->id} - ${$order->total} from {$orderData['email']}"
+            'text' => "📦 Order #{$order->id} - ${$order->total} from {$orderData['email']}",
         ]);
     }
 
@@ -153,7 +150,7 @@ class ProcessWebhookJob implements ShouldQueue
     {
         try {
             // Process the webhook data
-            match($this->service) {
+            match ($this->service) {
                 'slack' => $this->handleSlack(),
                 'telegram' => $this->handleTelegram(),
                 'whatsapp' => $this->handleWhatsApp(),
@@ -165,7 +162,7 @@ class ProcessWebhookJob implements ShouldQueue
                 'event' => $this->event,
                 'error' => $e->getMessage(),
             ]);
-            
+
             throw $e;
         }
     }
@@ -186,7 +183,7 @@ class ProcessWebhookJob implements ShouldQueue
             // Echo back the message
             Automation::to('telegram')->send([
                 'chat_id' => $chatId,
-                'text' => "You said: {$text}"
+                'text' => "You said: {$text}",
             ]);
         }
     }

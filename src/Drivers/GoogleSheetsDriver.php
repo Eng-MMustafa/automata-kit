@@ -16,7 +16,7 @@ class GoogleSheetsDriver extends BaseDriver
         // This would integrate with Google Sheets API
         // Implementation would require OAuth2 setup
         $this->log('info', 'Google Sheets action requested', ['data' => $data]);
-        
+
         return [
             'status' => 'simulated',
             'message' => 'Google Sheets integration requires OAuth2 configuration',

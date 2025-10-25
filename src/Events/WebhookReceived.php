@@ -12,11 +12,6 @@ class WebhookReceived
 
     /**
      * Create a new event instance.
-     *
-     * @param string $service
-     * @param string|null $event
-     * @param array $payload
-     * @param mixed $response
      */
     public function __construct(
         public readonly string $service,

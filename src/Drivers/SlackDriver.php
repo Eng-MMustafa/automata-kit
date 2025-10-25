@@ -8,8 +8,6 @@ class SlackDriver extends BaseDriver
 {
     /**
      * Get the driver name.
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -18,19 +16,16 @@ class SlackDriver extends BaseDriver
 
     /**
      * Send data to Slack.
-     *
-     * @param array $data
-     * @param array $options
-     * @return mixed
      */
     public function send(array $data, array $options = []): mixed
     {
         $webhookUrl = $this->getConfigValue('webhook_url');
         $token = $this->getConfigValue('bot_token');
-
         if ($webhookUrl) {
             return $this->sendViaWebhook($data, $webhookUrl);
-        } elseif ($token) {
+        }
+
+        if ($token) {
             return $this->sendViaApi($data, $token, $options);
         }
 
@@ -39,10 +34,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Send message via Slack webhook.
-     *
-     * @param array $data
-     * @param string $webhookUrl
-     * @return mixed
      */
     protected function sendViaWebhook(array $data, string $webhookUrl): mixed
     {
@@ -55,20 +46,14 @@ class SlackDriver extends BaseDriver
 
     /**
      * Send message via Slack API.
-     *
-     * @param array $data
-     * @param string $token
-     * @param array $options
-     * @return mixed
      */
     protected function sendViaApi(array $data, string $token, array $options): mixed
     {
         $endpoint = $options['endpoint'] ?? 'chat.postMessage';
-        $url = "https://slack.com/api/{$endpoint}";
 
         $payload = $this->formatApiPayload($data, $options);
 
-        return $this->makeRequest('POST', $url, [
+        return $this->makeRequest('POST', "https://slack.com/api/{$endpoint}", [
             'headers' => [
                 'Authorization' => "Bearer {$token}",
                 'Content-Type' => 'application/json',
@@ -79,9 +64,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Format payload for webhook.
-     *
-     * @param array $data
-     * @return array
      */
     protected function formatWebhookPayload(array $data): array
     {
@@ -105,10 +87,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Format payload for API.
-     *
-     * @param array $data
-     * @param array $options
-     * @return array
      */
     protected function formatApiPayload(array $data, array $options): array
     {
@@ -120,9 +98,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Handle incoming Slack webhook.
-     *
-     * @param Request $request
-     * @return mixed
      */
     public function handleWebhook(Request $request): mixed
     {
@@ -146,6 +121,7 @@ class SlackDriver extends BaseDriver
         // Handle interactive components
         if (isset($payload['payload'])) {
             $interactivePayload = json_decode($payload['payload'], true);
+
             return $this->handleInteractiveComponent($interactivePayload);
         }
 
@@ -156,10 +132,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Handle Slack events.
-     *
-     * @param array $event
-     * @param array $fullPayload
-     * @return array
      */
     protected function handleEvent(array $event, array $fullPayload): array
     {
@@ -173,9 +145,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Handle Slack slash commands.
-     *
-     * @param array $payload
-     * @return array
      */
     protected function handleSlashCommand(array $payload): array
     {
@@ -193,9 +162,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Handle Slack interactive components.
-     *
-     * @param array $payload
-     * @return array
      */
     protected function handleInteractiveComponent(array $payload): array
     {
@@ -209,22 +175,19 @@ class SlackDriver extends BaseDriver
 
     /**
      * Verify Slack webhook signature.
-     *
-     * @param Request $request
-     * @return bool
      */
     public function verifyWebhook(Request $request): bool
     {
         $signingSecret = $this->getConfigValue('signing_secret');
-        
-        if (!$signingSecret) {
+
+        if (! $signingSecret) {
             return true;
         }
 
         $signature = $request->header('X-Slack-Signature');
         $timestamp = $request->header('X-Slack-Request-Timestamp');
-        
-        if (!$signature || !$timestamp) {
+
+        if (! $signature || ! $timestamp) {
             return false;
         }
 
@@ -233,16 +196,14 @@ class SlackDriver extends BaseDriver
             return false;
         }
 
-        $baseString = 'v0:' . $timestamp . ':' . $request->getContent();
-        $expectedSignature = 'v0=' . hash_hmac('sha256', $baseString, $signingSecret);
+        $baseString = 'v0:'.$timestamp.':'.$request->getContent();
+        $expectedSignature = 'v0='.hash_hmac('sha256', $baseString, (string) $signingSecret);
 
         return hash_equals($signature, $expectedSignature);
     }
 
     /**
      * Get available actions for Slack.
-     *
-     * @return array
      */
     public function getAvailableActions(): array
     {
@@ -257,8 +218,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Get supported webhook events for Slack.
-     *
-     * @return array
      */
     public function getSupportedEvents(): array
     {

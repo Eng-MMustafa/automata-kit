@@ -16,12 +16,12 @@ class CustomServiceDriver extends BaseDriver
     {
         $apiKey = $this->getConfigValue('api_key');
         $baseUrl = $this->getConfigValue('base_url');
-        
-        if (!$apiKey || !$baseUrl) {
+
+        if (! $apiKey || ! $baseUrl) {
             throw new \InvalidArgumentException('API key and base URL are required');
         }
 
-        $url = rtrim($baseUrl, '/') . '/api/webhook';
+        $url = rtrim($baseUrl, '/').'/api/webhook';
 
         return $this->makeRequest('POST', $url, [
             'headers' => [
@@ -35,7 +35,7 @@ class CustomServiceDriver extends BaseDriver
     public function handleWebhook(Request $request): mixed
     {
         $payload = $request->all();
-        
+
         // Custom webhook handling logic
         $this->log('info', 'Custom service webhook received', [
             'event_type' => $payload['event_type'] ?? 'unknown',
@@ -52,8 +52,8 @@ class CustomServiceDriver extends BaseDriver
     {
         $signature = $request->header('X-Custom-Signature');
         $secret = $this->getConfigValue('webhook_secret');
-        
-        if (!$signature || !$secret) {
+
+        if (! $signature || ! $secret) {
             return true; // Skip verification if not configured
         }
 
@@ -119,5 +119,5 @@ Automation::to('custom_service')->send([
     'data' => [
         'name' => 'John Doe',
         'email' => 'john@example.com',
-    ]
+    ],
 ]);

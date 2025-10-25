@@ -14,22 +14,20 @@ class OpenAIDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $apiKey = $this->getConfigValue('api_key');
-        
-        if (!$apiKey) {
-            throw new \InvalidArgumentException('api_key is required for OpenAI');
-        }
+
+        throw_unless($apiKey, \InvalidArgumentException::class, 'api_key is required for OpenAI',
+        );
 
         $endpoint = $options['endpoint'] ?? 'chat/completions';
-        $url = "https://api.openai.com/v1/{$endpoint}";
 
         $payload = array_merge([
             'model' => 'gpt-4',
             'messages' => [
-                ['role' => 'user', 'content' => $data['prompt'] ?? $data['message'] ?? 'Hello']
+                ['role' => 'user', 'content' => $data['prompt'] ?? $data['message'] ?? 'Hello'],
             ],
         ], $data);
 
-        return $this->makeRequest('POST', $url, [
+        return $this->makeRequest('POST', "https://api.openai.com/v1/{$endpoint}", [
             'headers' => [
                 'Authorization' => "Bearer {$apiKey}",
                 'Content-Type' => 'application/json',
