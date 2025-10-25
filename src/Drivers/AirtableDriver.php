@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class AirtableDriver extends BaseDriver
+final class AirtableDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -16,22 +19,18 @@ class AirtableDriver extends BaseDriver
         $apiKey = $this->getConfigValue('api_key');
         $baseId = $this->getConfigValue('base_id');
         $tableName = $options['table'] ?? $this->getConfigValue('default_table');
-        
-        if (!$apiKey || !$baseId || !$tableName) {
-            throw new \InvalidArgumentException('api_key, base_id, and table are required for Airtable');
-        }
 
-        $url = "https://api.airtable.com/v0/{$baseId}/{$tableName}";
+        throw_if(! $apiKey || ! $baseId || ! $tableName, InvalidArgumentException::class, 'api_key, base_id, and table are required for Airtable');
 
-        return $this->makeRequest('POST', $url, [
+        return $this->makeRequest('POST', "https://api.airtable.com/v0/{$baseId}/{$tableName}", [
             'headers' => [
                 'Authorization' => "Bearer {$apiKey}",
                 'Content-Type' => 'application/json',
             ],
             'json' => [
                 'records' => [
-                    ['fields' => $data]
-                ]
+                    ['fields' => $data],
+                ],
             ],
         ]);
     }

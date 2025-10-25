@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
 
-class GoogleDriveDriver extends BaseDriver
+final class GoogleDriveDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -14,7 +16,7 @@ class GoogleDriveDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $this->log('info', 'Google Drive action requested', ['data' => $data]);
-        
+
         return [
             'status' => 'simulated',
             'message' => 'Google Drive integration requires OAuth2 configuration',

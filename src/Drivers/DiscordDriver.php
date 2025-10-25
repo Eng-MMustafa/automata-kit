@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class DiscordDriver extends BaseDriver
+final class DiscordDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -14,10 +17,8 @@ class DiscordDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $webhookUrl = $this->getConfigValue('webhook_url') ?? $options['webhook_url'];
-        
-        if (!$webhookUrl) {
-            throw new \InvalidArgumentException('webhook_url is required for Discord');
-        }
+
+        throw_unless($webhookUrl, InvalidArgumentException::class, 'webhook_url is required for Discord');
 
         $payload = [
             'content' => $data['content'] ?? $data['message'] ?? $data['text'] ?? 'Message from Laravel',

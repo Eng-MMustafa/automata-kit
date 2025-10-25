@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class HubSpotDriver extends BaseDriver
+final class HubSpotDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -14,21 +17,18 @@ class HubSpotDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $accessToken = $this->getConfigValue('access_token');
-        
-        if (!$accessToken) {
-            throw new \InvalidArgumentException('access_token is required for HubSpot');
-        }
+
+        throw_unless($accessToken, InvalidArgumentException::class, 'access_token is required for HubSpot');
 
         $endpoint = $options['endpoint'] ?? 'contacts';
-        $url = "https://api.hubapi.com/crm/v3/objects/{$endpoint}";
 
-        return $this->makeRequest('POST', $url, [
+        return $this->makeRequest('POST', "https://api.hubapi.com/crm/v3/objects/{$endpoint}", [
             'headers' => [
                 'Authorization' => "Bearer {$accessToken}",
                 'Content-Type' => 'application/json',
             ],
             'json' => [
-                'properties' => $data
+                'properties' => $data,
             ],
         ]);
     }

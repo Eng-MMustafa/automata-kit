@@ -1,16 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Jobs;
 
 use AutomataKit\LaravelAutomationConnect\Services\AutomationManager;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class ProcessAutomationJob implements ShouldQueue
+final class ProcessAutomationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -24,24 +28,24 @@ class ProcessAutomationJob implements ShouldQueue
     {
         try {
             $result = $automation->to($this->driver)->send($this->data, $this->options);
-            
+
             Log::info('Automation job completed successfully', [
                 'driver' => $this->driver,
                 'data_keys' => array_keys($this->data),
                 'result' => $result,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Automation job failed', [
                 'driver' => $this->driver,
                 'error' => $e->getMessage(),
                 'data_keys' => array_keys($this->data),
             ]);
-            
+
             throw $e;
         }
     }
 
-    public function failed(\Throwable $exception): void
+    public function failed(Throwable $exception): void
     {
         Log::error('Automation job failed permanently', [
             'driver' => $this->driver,

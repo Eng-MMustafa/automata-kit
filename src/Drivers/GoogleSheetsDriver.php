@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
 
-class GoogleSheetsDriver extends BaseDriver
+final class GoogleSheetsDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -16,7 +18,7 @@ class GoogleSheetsDriver extends BaseDriver
         // This would integrate with Google Sheets API
         // Implementation would require OAuth2 setup
         $this->log('info', 'Google Sheets action requested', ['data' => $data]);
-        
+
         return [
             'status' => 'simulated',
             'message' => 'Google Sheets integration requires OAuth2 configuration',

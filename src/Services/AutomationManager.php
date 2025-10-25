@@ -1,17 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Services;
 
 use AutomataKit\LaravelAutomationConnect\Contracts\AutomationConnectorContract;
 use Illuminate\Container\Container;
 use Illuminate\Support\Manager;
 
-class AutomationManager extends Manager
+final class AutomationManager extends Manager
 {
     /**
      * Create a new automation manager instance.
-     *
-     * @param Container $container
      */
     public function __construct(Container $container)
     {
@@ -20,19 +20,14 @@ class AutomationManager extends Manager
 
     /**
      * Get the default driver name.
-     *
-     * @return string
      */
     public function getDefaultDriver(): string
     {
-        return $this->container['config']['automation.default'];
+        return $this->container->make(\Illuminate\Contracts\Config\Repository::class)->get('automation.default');
     }
 
     /**
      * Create a Slack driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createSlackDriver(array $config): AutomationConnectorContract
     {
@@ -41,9 +36,6 @@ class AutomationManager extends Manager
 
     /**
      * Create an N8n driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createN8nDriver(array $config): AutomationConnectorContract
     {
@@ -52,9 +44,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a Zapier driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createZapierDriver(array $config): AutomationConnectorContract
     {
@@ -63,9 +52,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a Make driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createMakeDriver(array $config): AutomationConnectorContract
     {
@@ -74,9 +60,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a Telegram driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createTelegramDriver(array $config): AutomationConnectorContract
     {
@@ -85,9 +68,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a WhatsApp driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createWhatsappDriver(array $config): AutomationConnectorContract
     {
@@ -96,9 +76,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a Google Sheets driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createGoogleSheetsDriver(array $config): AutomationConnectorContract
     {
@@ -107,9 +84,6 @@ class AutomationManager extends Manager
 
     /**
      * Create an Airtable driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createAirtableDriver(array $config): AutomationConnectorContract
     {
@@ -118,9 +92,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a Discord driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createDiscordDriver(array $config): AutomationConnectorContract
     {
@@ -129,9 +100,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a HubSpot driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createHubspotDriver(array $config): AutomationConnectorContract
     {
@@ -140,9 +108,6 @@ class AutomationManager extends Manager
 
     /**
      * Create a Google Drive driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createGoogleDriveDriver(array $config): AutomationConnectorContract
     {
@@ -151,9 +116,6 @@ class AutomationManager extends Manager
 
     /**
      * Create an OpenAI driver instance.
-     *
-     * @param array $config
-     * @return AutomationConnectorContract
      */
     public function createOpenaiDriver(array $config): AutomationConnectorContract
     {
@@ -162,9 +124,6 @@ class AutomationManager extends Manager
 
     /**
      * Send data using the specified driver.
-     *
-     * @param string $driver
-     * @return AutomationConnectorContract
      */
     public function to(string $driver): AutomationConnectorContract
     {
@@ -173,8 +132,6 @@ class AutomationManager extends Manager
 
     /**
      * Get all available drivers.
-     *
-     * @return array
      */
     public function getAvailableDrivers(): array
     {
@@ -183,9 +140,6 @@ class AutomationManager extends Manager
 
     /**
      * Check if a driver is available.
-     *
-     * @param string $driver
-     * @return bool
      */
     public function hasDriver(string $driver): bool
     {

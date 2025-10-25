@@ -1,15 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class SlackDriver extends BaseDriver
+final class SlackDriver extends BaseDriver
 {
     /**
      * Get the driver name.
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -18,111 +19,24 @@ class SlackDriver extends BaseDriver
 
     /**
      * Send data to Slack.
-     *
-     * @param array $data
-     * @param array $options
-     * @return mixed
      */
     public function send(array $data, array $options = []): mixed
     {
         $webhookUrl = $this->getConfigValue('webhook_url');
         $token = $this->getConfigValue('bot_token');
-
         if ($webhookUrl) {
             return $this->sendViaWebhook($data, $webhookUrl);
-        } elseif ($token) {
+        }
+
+        if ($token) {
             return $this->sendViaApi($data, $token, $options);
         }
 
-        throw new \InvalidArgumentException('Either webhook_url or bot_token must be configured for Slack');
-    }
-
-    /**
-     * Send message via Slack webhook.
-     *
-     * @param array $data
-     * @param string $webhookUrl
-     * @return mixed
-     */
-    protected function sendViaWebhook(array $data, string $webhookUrl): mixed
-    {
-        $payload = $this->formatWebhookPayload($data);
-
-        return $this->makeRequest('POST', $webhookUrl, [
-            'json' => $payload,
-        ]);
-    }
-
-    /**
-     * Send message via Slack API.
-     *
-     * @param array $data
-     * @param string $token
-     * @param array $options
-     * @return mixed
-     */
-    protected function sendViaApi(array $data, string $token, array $options): mixed
-    {
-        $endpoint = $options['endpoint'] ?? 'chat.postMessage';
-        $url = "https://slack.com/api/{$endpoint}";
-
-        $payload = $this->formatApiPayload($data, $options);
-
-        return $this->makeRequest('POST', $url, [
-            'headers' => [
-                'Authorization' => "Bearer {$token}",
-                'Content-Type' => 'application/json',
-            ],
-            'json' => $payload,
-        ]);
-    }
-
-    /**
-     * Format payload for webhook.
-     *
-     * @param array $data
-     * @return array
-     */
-    protected function formatWebhookPayload(array $data): array
-    {
-        // If text is provided directly
-        if (isset($data['text'])) {
-            return $data;
-        }
-
-        // If message is provided
-        if (isset($data['message'])) {
-            return ['text' => $data['message']];
-        }
-
-        // Default formatting
-        return [
-            'text' => $data['text'] ?? 'Message from Laravel',
-            'blocks' => $data['blocks'] ?? null,
-            'attachments' => $data['attachments'] ?? null,
-        ];
-    }
-
-    /**
-     * Format payload for API.
-     *
-     * @param array $data
-     * @param array $options
-     * @return array
-     */
-    protected function formatApiPayload(array $data, array $options): array
-    {
-        return array_merge([
-            'channel' => $data['channel'] ?? $this->getConfigValue('default_channel', '#general'),
-            'text' => $data['text'] ?? $data['message'] ?? 'Message from Laravel',
-        ], $data, $options);
+        throw new InvalidArgumentException('Either webhook_url or bot_token must be configured for Slack');
     }
 
     /**
      * Handle incoming Slack webhook.
-     *
-     * @param Request $request
-     * @return mixed
      */
     public function handleWebhook(Request $request): mixed
     {
@@ -146,6 +60,7 @@ class SlackDriver extends BaseDriver
         // Handle interactive components
         if (isset($payload['payload'])) {
             $interactivePayload = json_decode($payload['payload'], true);
+
             return $this->handleInteractiveComponent($interactivePayload);
         }
 
@@ -155,11 +70,134 @@ class SlackDriver extends BaseDriver
     }
 
     /**
+     * Verify Slack webhook signature.
+     */
+    public function verifyWebhook(Request $request): bool
+    {
+        $signingSecret = $this->getConfigValue('signing_secret');
+
+        if (! $signingSecret) {
+            return true;
+        }
+
+        $signature = $request->header('X-Slack-Signature');
+        $timestamp = $request->header('X-Slack-Request-Timestamp');
+
+        if (! $signature || ! $timestamp) {
+            return false;
+        }
+
+        // Prevent replay attacks
+        if (abs(time() - $timestamp) > 60 * 5) {
+            return false;
+        }
+
+        $baseString = 'v0:'.$timestamp.':'.$request->getContent();
+        $expectedSignature = 'v0='.hash_hmac('sha256', $baseString, (string) $signingSecret);
+
+        return hash_equals($signature, $expectedSignature);
+    }
+
+    /**
+     * Get available actions for Slack.
+     */
+    public function getAvailableActions(): array
+    {
+        return [
+            'send' => 'Send message to Slack',
+            'post_message' => 'Post message to channel',
+            'upload_file' => 'Upload file to channel',
+            'create_channel' => 'Create new channel',
+            'invite_user' => 'Invite user to channel',
+        ];
+    }
+
+    /**
+     * Get supported webhook events for Slack.
+     */
+    public function getSupportedEvents(): array
+    {
+        return [
+            'message',
+            'app_mention',
+            'channel_created',
+            'channel_deleted',
+            'member_joined_channel',
+            'member_left_channel',
+            'reaction_added',
+            'reaction_removed',
+            'file_shared',
+            'slash_command',
+            'interactive_component',
+        ];
+    }
+
+    /**
+     * Send message via Slack webhook.
+     */
+    protected function sendViaWebhook(array $data, string $webhookUrl): mixed
+    {
+        $payload = $this->formatWebhookPayload($data);
+
+        return $this->makeRequest('POST', $webhookUrl, [
+            'json' => $payload,
+        ]);
+    }
+
+    /**
+     * Send message via Slack API.
+     */
+    protected function sendViaApi(array $data, string $token, array $options): mixed
+    {
+        $endpoint = $options['endpoint'] ?? 'chat.postMessage';
+
+        $payload = $this->formatApiPayload($data, $options);
+
+        return $this->makeRequest('POST', "https://slack.com/api/{$endpoint}", [
+            'headers' => [
+                'Authorization' => "Bearer {$token}",
+                'Content-Type' => 'application/json',
+            ],
+            'json' => $payload,
+        ]);
+    }
+
+    /**
+     * Format payload for webhook.
+     */
+    protected function formatWebhookPayload(array $data): array
+    {
+        // If text is provided directly
+        if (isset($data['text'])) {
+            return $data;
+        }
+
+        // If message is provided
+        if (isset($data['message'])) {
+            return ['text' => $data['message']];
+        }
+
+        // Default formatting
+        return [
+            'text' => $data['text'] ?? 'Message from Laravel',
+            'blocks' => $data['blocks'] ?? null,
+            'attachments' => $data['attachments'] ?? null,
+        ];
+    }
+
+    /**
+     * Format payload for API.
+     */
+    protected function formatApiPayload(array $data, array $options): array
+    {
+        return array_merge([
+            'channel' => $data['channel'] ?? $this->getConfigValue('default_channel', '#general'),
+            'text' => $data['text'] ?? $data['message'] ?? 'Message from Laravel',
+        ], $data, $options);
+    }
+
+    /**
      * Handle Slack events.
-     *
-     * @param array $event
-     * @param array $fullPayload
-     * @return array
      */
     protected function handleEvent(array $event, array $fullPayload): array
     {
@@ -173,9 +211,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Handle Slack slash commands.
-     *
-     * @param array $payload
-     * @return array
      */
     protected function handleSlashCommand(array $payload): array
     {
@@ -193,9 +228,6 @@ class SlackDriver extends BaseDriver
 
     /**
      * Handle Slack interactive components.
-     *
-     * @param array $payload
-     * @return array
      */
     protected function handleInteractiveComponent(array $payload): array
     {
@@ -205,75 +237,5 @@ class SlackDriver extends BaseDriver
         ]);
 
         return ['status' => 'interaction_processed'];
-    }
-
-    /**
-     * Verify Slack webhook signature.
-     *
-     * @param Request $request
-     * @return bool
-     */
-    public function verifyWebhook(Request $request): bool
-    {
-        $signingSecret = $this->getConfigValue('signing_secret');
-        
-        if (!$signingSecret) {
-            return true;
-        }
-
-        $signature = $request->header('X-Slack-Signature');
-        $timestamp = $request->header('X-Slack-Request-Timestamp');
-        
-        if (!$signature || !$timestamp) {
-            return false;
-        }
-
-        // Prevent replay attacks
-        if (abs(time() - $timestamp) > 60 * 5) {
-            return false;
-        }
-
-        $baseString = 'v0:' . $timestamp . ':' . $request->getContent();
-        $expectedSignature = 'v0=' . hash_hmac('sha256', $baseString, $signingSecret);
-
-        return hash_equals($signature, $expectedSignature);
-    }
-
-    /**
-     * Get available actions for Slack.
-     *
-     * @return array
-     */
-    public function getAvailableActions(): array
-    {
-        return [
-            'send' => 'Send message to Slack',
-            'post_message' => 'Post message to channel',
-            'upload_file' => 'Upload file to channel',
-            'create_channel' => 'Create new channel',
-            'invite_user' => 'Invite user to channel',
-        ];
-    }
-
-    /**
-     * Get supported webhook events for Slack.
-     *
-     * @return array
-     */
-    public function getSupportedEvents(): array
-    {
-        return [
-            'message',
-            'app_mention',
-            'channel_created',
-            'channel_deleted',
-            'member_joined_channel',
-            'member_left_channel',
-            'reaction_added',
-            'reaction_removed',
-            'file_shared',
-            'slash_command',
-            'interactive_component',
-        ];
     }
 }

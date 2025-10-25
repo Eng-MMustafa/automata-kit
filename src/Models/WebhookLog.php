@@ -1,16 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
-class WebhookLog extends Model
+/**
+ * @property array $payload
+ * @property array $headers
+ * @property array $response
+ * @property float $processing_time_ms
+ * @property Carbon $processed_at
+ */
+final class WebhookLog extends Model
 {
     use HasFactory;
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'automation_webhook_logs';
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'service',
         'event',
@@ -25,101 +46,99 @@ class WebhookLog extends Model
         'processed_at',
     ];
 
-    protected $casts = [
-        'payload' => 'array',
-        'headers' => 'array',
-        'response' => 'array',
-        'processing_time_ms' => 'float',
-        'processed_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
-    /**
-     * Scope to filter by service.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $service
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeForService($query, string $service)
-    {
-        return $query->where('service', $service);
-    }
-
-    /**
-     * Scope to filter by status.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $status
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeWithStatus($query, string $status)
-    {
-        return $query->where('status', $status);
-    }
-
-    /**
-     * Scope to get successful webhooks.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeSuccessful($query)
-    {
-        return $query->where('status', 'success');
-    }
-
-    /**
-     * Scope to get failed webhooks.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeFailed($query)
-    {
-        return $query->where('status', 'failed');
-    }
-
     /**
      * Get the webhook success rate for a service.
-     *
-     * @param string|null $service
-     * @return float
      */
     public static function getSuccessRate(?string $service = null): float
     {
-        $query = static::query();
-        
-        if ($service) {
-            $query->forService($service);
-        }
+        $query = self::query()
+            ->when($service, fn (Builder $builder, string $service): Builder => $builder->forService($service));
 
         $total = $query->count();
-        
+
         if ($total === 0) {
             return 0.0;
         }
 
         $successful = $query->successful()->count();
-        
+
         return round(($successful / $total) * 100, 2);
     }
 
     /**
      * Get average processing time for a service.
-     *
-     * @param string|null $service
-     * @return float
      */
     public static function getAverageProcessingTime(?string $service = null): float
     {
-        $query = static::query()->whereNotNull('processing_time_ms');
-        
-        if ($service) {
-            $query->forService($service);
-        }
+        $processingTime = self::query()
+            ->whereNotNull('processing_time_ms')
+            ->when($service, fn (Builder $builder, string $service): Builder => $builder->forService($service))
+            ->avg('processing_time_ms');
 
-        return round($query->avg('processing_time_ms') ?? 0, 2);
+        return round($processingTime, 2);
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'payload' => 'array',
+            'headers' => 'array',
+            'response' => 'array',
+            'processing_time_ms' => 'float',
+            'processed_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Scope to filter by service.
+     *
+     * @param  Builder<self>  $builder
+     * @return Builder<self>
+     */
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function forService(Builder $builder, string $service): Builder
+    {
+        return $builder->where('service', $service);
+    }
+
+    /**
+     * Scope to filter by status.
+     *
+     * @param  Builder<self>  $builder
+     * @return Builder<self>
+     */
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function withStatus(Builder $builder, string $status): Builder
+    {
+        return $builder->where('status', $status);
+    }
+
+    /**
+     * Scope to get successful webhooks.
+     *
+     * @param  Builder<self>  $builder
+     * @return Builder<self>
+     */
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function successful(Builder $builder): Builder
+    {
+        return $builder->withStatus('success');
+    }
+
+    /**
+     * Scope to get failed webhooks.
+     *
+     * @param  Builder<self>  $builder
+     * @return Builder<self>
+     */
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function failed(Builder $builder): Builder
+    {
+        return $builder->withStatus('failed');
     }
 }

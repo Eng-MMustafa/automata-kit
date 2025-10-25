@@ -1,17 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Http\Controllers;
 
 use AutomataKit\LaravelAutomationConnect\Events\WebhookReceived;
-use AutomataKit\LaravelAutomationConnect\Services\AutomationManager;
 use AutomataKit\LaravelAutomationConnect\Models\WebhookLog;
-use Illuminate\Http\Request;
+use AutomataKit\LaravelAutomationConnect\Services\AutomationManager;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Routing\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class WebhookController extends Controller
+final class WebhookController
 {
     public function __construct(
         protected AutomationManager $automationManager
@@ -19,23 +20,18 @@ class WebhookController extends Controller
 
     /**
      * Handle incoming webhook requests.
-     *
-     * @param Request $request
-     * @param string $service
-     * @param string|null $event
-     * @return JsonResponse
      */
-    public function handle(Request $request, string $service, ?string $event = null): JsonResponse
+    public function __invoke(Request $request, string $service, ?string $event = null): JsonResponse
     {
         $startTime = microtime(true);
         $webhookLog = null;
 
         try {
             // Check if the driver exists
-            if (!$this->automationManager->hasDriver($service)) {
+            if (! $this->automationManager->hasDriver($service)) {
                 return response()->json([
                     'error' => 'Service not supported',
-                    'service' => $service
+                    'service' => $service,
                 ], 404);
             }
 
@@ -44,7 +40,7 @@ class WebhookController extends Controller
 
             // Create webhook log
             if (config('automation.logging.enabled', true)) {
-                $webhookLog = WebhookLog::create([
+                $webhookLog = WebhookLog::query()->create([
                     'service' => $service,
                     'event' => $event,
                     'payload' => $request->all(),
@@ -56,11 +52,11 @@ class WebhookController extends Controller
             }
 
             // Verify webhook signature if supported
-            if ($driver->supportsIncomingWebhooks() && !$driver->verifyWebhook($request)) {
+            if ($driver->supportsIncomingWebhooks() && ! $driver->verifyWebhook($request)) {
                 $this->updateWebhookLog($webhookLog, 'failed', 'Invalid webhook signature');
-                
+
                 return response()->json([
-                    'error' => 'Invalid webhook signature'
+                    'error' => 'Invalid webhook signature',
                 ], 401);
             }
 
@@ -81,7 +77,7 @@ class WebhookController extends Controller
                 'service' => $service,
                 'event' => $event,
                 'response' => $response,
-                'processing_time_ms' => $processingTime
+                'processing_time_ms' => $processingTime,
             ]);
 
         } catch (Throwable $e) {
@@ -104,19 +100,13 @@ class WebhookController extends Controller
                 'message' => config('app.debug') ? $errorMessage : 'Internal server error',
                 'service' => $service,
                 'event' => $event,
-                'processing_time_ms' => $processingTime
+                'processing_time_ms' => $processingTime,
             ], 500);
         }
     }
 
     /**
      * Update webhook log with results.
-     *
-     * @param WebhookLog|null $webhookLog
-     * @param string $status
-     * @param string|null $errorMessage
-     * @param mixed $response
-     * @param float|null $processingTime
      */
     protected function updateWebhookLog(
         ?WebhookLog $webhookLog,
@@ -125,7 +115,7 @@ class WebhookController extends Controller
         mixed $response = null,
         ?float $processingTime = null
     ): void {
-        if (!$webhookLog) {
+        if (! $webhookLog instanceof WebhookLog) {
             return;
         }
 

@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Drivers;
 
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
-class MakeDriver extends BaseDriver
+final class MakeDriver extends BaseDriver
 {
     public function getName(): string
     {
@@ -14,10 +17,8 @@ class MakeDriver extends BaseDriver
     public function send(array $data, array $options = []): mixed
     {
         $webhookUrl = $this->getConfigValue('webhook_url') ?? $options['webhook_url'] ?? null;
-        
-        if (!$webhookUrl) {
-            throw new \InvalidArgumentException('webhook_url is required for Make');
-        }
+
+        throw_unless($webhookUrl, InvalidArgumentException::class, 'webhook_url is required for Make');
 
         return $this->makeRequest('POST', $webhookUrl, [
             'headers' => ['Content-Type' => 'application/json'],

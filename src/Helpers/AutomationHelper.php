@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AutomataKit\LaravelAutomationConnect\Helpers;
 
-class AutomationHelper
+final class AutomationHelper
 {
     /**
      * Format message for different platforms.
@@ -70,8 +72,65 @@ class AutomationHelper
     {
         // Remove sensitive data
         $sensitive = ['password', 'token', 'secret', 'key', 'auth'];
-        
+
         return self::recursiveFilter($payload, $sensitive);
+    }
+
+    /**
+     * Validate webhook signature.
+     */
+    public static function validateSignature(string $payload, string $signature, string $secret, string $algorithm = 'sha256'): bool
+    {
+        $expectedSignature = hash_hmac($algorithm, $payload, $secret);
+
+        return hash_equals($signature, $expectedSignature) ||
+               hash_equals($signature, "{$algorithm}={$expectedSignature}");
+    }
+
+    /**
+     * Generate webhook URL for service.
+     */
+    public static function generateWebhookUrl(string $service, ?string $event = null): string
+    {
+        $baseUrl = config('app.url');
+        $prefix = config('automation.webhook_prefix', 'webhooks');
+
+        $url = "{$baseUrl}/{$prefix}/{$service}";
+
+        if ($event) {
+            $url .= "/{$event}";
+        }
+
+        return $url;
+    }
+
+    /**
+     * Convert data to API-specific format.
+     */
+    public static function transformData(array $data, string $targetFormat): array
+    {
+        return match ($targetFormat) {
+            'hubspot' => self::transformToHubSpot($data),
+            'airtable' => self::transformToAirtable($data),
+            'sheets' => self::transformToGoogleSheets($data),
+            default => $data
+        };
+    }
+
+    /**
+     * Rate limiting check.
+     */
+    public static function checkRateLimit(string $driver, string $identifier): bool
+    {
+        if (! config('automation.rate_limiting.enabled', true)) {
+            return true;
+        }
+
+        $limit = config("automation.rate_limiting.driver_limits.{$driver}", config('automation.rate_limiting.default_limit', 60));
+
+        $key = "automation:rate_limit:{$driver}:{$identifier}";
+
+        return app(\Illuminate\Contracts\Cache\Factory::class)->throttle($key, $limit, now()->addMinute());
     }
 
     /**
@@ -95,10 +154,10 @@ class AutomationHelper
      */
     private static function containsSensitiveKey(string $key, array $sensitiveKeys): bool
     {
-        $key = strtolower($key);
-        
+        $key = mb_strtolower($key);
+
         foreach ($sensitiveKeys as $sensitive) {
-            if (str_contains($key, strtolower($sensitive))) {
+            if (str_contains($key, mb_strtolower((string) $sensitive))) {
                 return true;
             }
         }
@@ -107,53 +166,12 @@ class AutomationHelper
     }
 
     /**
-     * Validate webhook signature.
-     */
-    public static function validateSignature(string $payload, string $signature, string $secret, string $algorithm = 'sha256'): bool
-    {
-        $expectedSignature = hash_hmac($algorithm, $payload, $secret);
-        
-        return hash_equals($signature, $expectedSignature) ||
-               hash_equals($signature, "{$algorithm}={$expectedSignature}");
-    }
-
-    /**
-     * Generate webhook URL for service.
-     */
-    public static function generateWebhookUrl(string $service, ?string $event = null): string
-    {
-        $baseUrl = config('app.url');
-        $prefix = config('automation.webhook_prefix', 'webhooks');
-        
-        $url = "{$baseUrl}/{$prefix}/{$service}";
-        
-        if ($event) {
-            $url .= "/{$event}";
-        }
-        
-        return $url;
-    }
-
-    /**
-     * Convert data to API-specific format.
-     */
-    public static function transformData(array $data, string $targetFormat): array
-    {
-        return match ($targetFormat) {
-            'hubspot' => self::transformToHubSpot($data),
-            'airtable' => self::transformToAirtable($data),
-            'sheets' => self::transformToGoogleSheets($data),
-            default => $data
-        };
-    }
-
-    /**
      * Transform data for HubSpot CRM format.
      */
     private static function transformToHubSpot(array $data): array
     {
         $hubspotData = [];
-        
+
         foreach ($data as $key => $value) {
             // Convert common field names
             $hubspotKey = match ($key) {
@@ -161,12 +179,12 @@ class AutomationHelper
                 'surname', 'last_name' => 'lastname',
                 'phone_number', 'mobile' => 'phone',
                 'company_name' => 'company',
-                default => strtolower($key)
+                default => mb_strtolower((string) $key)
             };
-            
+
             $hubspotData[$hubspotKey] = $value;
         }
-        
+
         return $hubspotData;
     }
 
@@ -175,10 +193,7 @@ class AutomationHelper
      */
     private static function transformToAirtable(array $data): array
     {
-        return array_map(function ($key, $value) {
-            // Airtable field names should be Title Case
-            return [ucwords(str_replace('_', ' ', $key)) => $value];
-        }, array_keys($data), $data);
+        return array_map(fn ($key, int|string $value): array => [ucwords(str_replace('_', ' ', $key)) => $value], array_keys($data), $data);
     }
 
     /**
@@ -188,22 +203,5 @@ class AutomationHelper
     {
         // Convert to array of values for row insertion
         return array_values($data);
-    }
-
-    /**
-     * Rate limiting check.
-     */
-    public static function checkRateLimit(string $driver, string $identifier): bool
-    {
-        if (!config('automation.rate_limiting.enabled', true)) {
-            return true;
-        }
-
-        $limit = config("automation.rate_limiting.driver_limits.{$driver}") 
-               ?? config('automation.rate_limiting.default_limit', 60);
-
-        $key = "automation:rate_limit:{$driver}:{$identifier}";
-        
-        return app('cache')->throttle($key, $limit, now()->addMinute());
     }
 }

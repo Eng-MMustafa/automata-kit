@@ -1,9 +1,11 @@
 <?php
 
-use AutomataKit\LaravelAutomationConnect\Tests\TestCase;
-use AutomataKit\LaravelAutomationConnect\Facades\Automation;
+declare(strict_types=1);
 
-class SlackDriverTest extends TestCase
+use AutomataKit\LaravelAutomationConnect\Facades\Automation;
+use AutomataKit\LaravelAutomationConnect\Tests\TestCase;
+
+final class SlackDriverTest extends TestCase
 {
     /** @test */
     public function it_can_send_slack_messages(): void
@@ -14,19 +16,19 @@ class SlackDriverTest extends TestCase
 
         $response = Automation::to('slack')->send([
             'text' => 'Test message',
-            'channel' => '#test'
+            'channel' => '#test',
         ]);
 
         $this->assertNotNull($response);
     }
 
-    /** @test */  
+    /** @test */
     public function it_can_handle_slack_webhooks(): void
     {
         $payload = [
             'token' => 'verification_token',
             'challenge' => 'test_challenge',
-            'type' => 'url_verification'
+            'type' => 'url_verification',
         ];
 
         $response = $this->postJson('/webhooks/slack', $payload);
@@ -34,12 +36,12 @@ class SlackDriverTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'service' => 'slack'
+                'service' => 'slack',
             ]);
     }
 }
 
-class AutomationManagerTest extends TestCase  
+final class AutomationManagerTest extends TestCase
 {
     /** @test */
     public function it_can_get_available_drivers(): void
@@ -59,7 +61,7 @@ class AutomationManagerTest extends TestCase
     }
 }
 
-class WebhookLogTest extends TestCase
+final class WebhookLogTest extends TestCase
 {
     /** @test */
     public function it_logs_webhook_requests(): void
@@ -72,7 +74,7 @@ class WebhookLogTest extends TestCase
 
         $this->assertDatabaseHas('automation_webhook_logs', [
             'service' => 'slack',
-            'status' => 'success'
+            'status' => 'success',
         ]);
     }
 
@@ -80,19 +82,19 @@ class WebhookLogTest extends TestCase
     public function it_calculates_success_rate(): void
     {
         // Create test data
-        \AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
+        AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
             'service' => 'slack',
             'status' => 'success',
             'payload' => [],
         ]);
 
-        \AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
-            'service' => 'slack', 
+        AutomataKit\LaravelAutomationConnect\Models\WebhookLog::create([
+            'service' => 'slack',
             'status' => 'failed',
             'payload' => [],
         ]);
 
-        $rate = \AutomataKit\LaravelAutomationConnect\Models\WebhookLog::getSuccessRate('slack');
+        $rate = AutomataKit\LaravelAutomationConnect\Models\WebhookLog::getSuccessRate('slack');
 
         $this->assertEquals(50.0, $rate);
     }
